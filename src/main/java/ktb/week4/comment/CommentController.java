@@ -14,16 +14,13 @@ import static ktb.week4.comment.CommentDto.*;
 public class CommentController {
 
     private final CommentService commentService;
-    private final UserService userService;
-    private final PostViewService postViewService;
 
     @PostMapping("/posts/{postId}/comments")
     public void createComment(@PathVariable Long postId,
                               @RequestBody CommentCreateRequest request,
                               @CurrentUser User user) {
 
-        commentService.createComment(postId, request, user);
-        postViewService.updateCommentCount(postId, false);
+        commentService.uploadComment(postId, request, user);
     }
 
     @PatchMapping("/comments/{commentId}")
@@ -39,7 +36,6 @@ public class CommentController {
                               @PathVariable Long commentId,
                               @CurrentUser User user) {
 
-        commentService.deleteComment(commentId, user);
-        postViewService.updateCommentCount(postId, true);
+        commentService.deleteComment(postId, commentId, user);
     }
 }

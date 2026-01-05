@@ -1,4 +1,4 @@
-package ktb.week4.Login;
+package ktb.week4.Login.CustomUserDetails;
 
 import ktb.week4.user.User;
 import org.springframework.security.core.GrantedAuthority;
@@ -6,7 +6,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
 

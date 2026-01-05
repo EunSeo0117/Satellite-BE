@@ -1,6 +1,10 @@
 package ktb.week4.user;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import ktb.week4.util.exception.CustomException;
+import ktb.week4.util.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -8,6 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Map;
 
 import static ktb.week4.user.UserDto.*;
 
@@ -59,5 +66,33 @@ public class UserController {
         userService.deleteUser(user);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/refresh")
+    public Map<String, String> refresh(@CookieValue(value = "refreshToken", required = false) String refreshToken,
+                                     HttpServletResponse response) {
+        if (refreshToken == null) {
+            userService.deleteCookies(response);
+            response.setStatus(401);
+            return Map.of("error", "Refresh Token Missing");
+        }
+
+        try {
+            var toeknResponse = userService.refreshToken(refreshToken, response);
+
+            if (toeknResponse == null) {
+                response.setStatus(401);
+                return Map.of("error", "Refresh token invalid or expired");
+            }
+
+            return Map.of(
+                    "accessToken", toeknResponse.accessToken(),
+                    "refreshToken", toeknResponse.refreshToken()
+            );
+        } catch (ResponseStatusException exception) {
+            response.setStatus(401);
+            return Map.of("error", "Refresh token invalid or expired");
+        }
+    }
+
 
 }

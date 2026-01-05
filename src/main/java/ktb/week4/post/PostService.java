@@ -13,10 +13,13 @@ import ktb.week4.post.postView.PostViewService;
 import ktb.week4.user.User;
 import ktb.week4.image.ImageRepository;
 import ktb.week4.user.UserService;
+import ktb.week4.util.exception.CustomException;
+import ktb.week4.util.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.support.SimpleTriggerContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,9 +35,9 @@ import static ktb.week4.post.PostDto.*;
 @RequiredArgsConstructor
 public class PostService {
     private final PostRepository postRepository;
-    private final UserService userService;
     private final PostViewRepository postViewRepository;
-    private final CommentService commentService;
+    private final CommentRepository commentRepository;
+    private final PostImageRepository postImageRepository;
     private final PostImageService postImageService;
     private final PostViewService postViewService;
 
@@ -62,58 +65,60 @@ public class PostService {
 
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PostDetailResponse getPost(Long postId) {
         Post post = getPostById(postId);
-        PostView postView = postViewService.getPostViewById(postId);
+        PostView postView = postViewRepository.findById(postId)
+                .orElseThrow(()-> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        List<PostImage> postImages = postImageService.getPostImagesByPostId(postId);
+        List<PostImage> postImages = postImageRepository.findAllById_PostId(postId);
         List<PostImageResponse> postImagesResponses = new ArrayList<>();
         for (PostImage postImage : postImages) {
             PostImageResponse response = PostImageResponse.of(postImage);
             postImagesResponses.add(response);
         }
 
-        List<Comment> comments = commentService.getCommentsByPostId(postId);
+        List<Comment> comments = commentRepository.findAllByPost_Id(postId);
         List<CommentResponse> commentResponses = new ArrayList<>();
         for (Comment comment : comments) {
             CommentResponse respone = CommentResponse.of(comment);
             commentResponses.add(respone);
         }
 
+        postViewService.updateViewsCount(postId);
         return PostDetailResponse.of(post, postView, postImagesResponses, commentResponses);
     }
 
     @Transactional
-    public Long createPost(String title, String content, User user) {
-        Post post = Post.builder()
-                .user(user)
-                .postTitle(title)
-                .postContent(content)
-                .build();
-        postRepository.save(post);
+    public Long uploadPost(PostRequest request, User user) {
+        Post post = createPost(user, request.postTitle(), request.postContent());
+        createPostView(post);
 
-        PostView postView = PostView.builder()
-                .post(post)
-                .build();
-        postViewRepository.save(postView);
+        if (request.files() != null) {
+            postImageService.createPostImages(post.getId(), request.files());
+        }
 
         return post.getId();
 
     }
 
     @Transactional
-    public Long updatePost(Long postId, String title, String content, User user) {
-        validateUser(postId, user);
-
+    public Long updatePost(Long postId, PostRequest request, User user) {
         Post post = getPostById(postId);
+        validateUser(post, user);
 
-        if (title != null) {
-            post.updatePostTitle(title);
+        // 이미지 수정
+        if (request.files() != null &&  !request.files().isEmpty()) {
+            postImageService.updatePostImages(postId, request.files());
         }
 
-        if (content != null) {
-            post.updatePostContent(content);
+        // 제목 본문 수정
+        if (request.postTitle() != null) {
+            post.updatePostTitle(request.postTitle());
+        }
+
+        if (request.postContent() != null) {
+            post.updatePostContent(request.postContent());
         }
 
         postRepository.save(post);
@@ -123,22 +128,37 @@ public class PostService {
 
     @Transactional
     public void deletePost(Long postId, User user) {
-        validateUser(postId, user);
-
         Post post = getPostById(postId);
+        validateUser(post, user);
+
         postRepository.delete(post); // cascade
     }
 
-    public Post getPostById(Long postId) {
-        return postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post id " + postId + " not found"));
+    private Post createPost(User user, String title, String content) {
+        Post post = Post.builder()
+                .user(user)
+                .postTitle(title)
+                .postContent(content)
+                .build();
+        postRepository.save(post);
+        return post;
     }
 
-    private void validateUser(Long postId, User user) {
-        Post post = getPostById(postId);
+    private void createPostView(Post post) {
+        PostView postView = PostView.builder()
+                .post(post)
+                .build();
+        postViewRepository.save(postView);
+    }
 
+    private Post getPostById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+    }
+
+    private void validateUser(Post post, User user) {
         if (!post.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("forbidden user");
+            throw new CustomException(ErrorCode.NOT_RESOURCE_OWNER);
         }
     }
 

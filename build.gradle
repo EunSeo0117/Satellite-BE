@@ -60,6 +60,10 @@ dependencies {
     // markdown
     implementation 'org.commonmark:commonmark:0.22.0'
 
+    // monitoring
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
 
 }
 
@@ -69,4 +73,6 @@ clean {
 
 tasks.named('test') {
 	useJUnitPlatform()
+    systemProperty 'spring.profiles.active',
+    System.getenv('SPRING_PROFILES_ACTIVE')?:'test'
 }

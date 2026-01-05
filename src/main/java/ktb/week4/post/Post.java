@@ -25,8 +25,10 @@ public class Post extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Column(length = 26)
     private String postTitle;
 
+    @Column(length = 5000, columnDefinition = "TEXT")
     private String postContent;
 
     @OneToOne(mappedBy = "post", orphanRemoval = true, cascade = CascadeType.ALL)

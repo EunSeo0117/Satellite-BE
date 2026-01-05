@@ -1,0 +1,45 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments:
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+cors:
+  allowed-origins:
+    ${SERVER_URL}
+
+upload:
+  path: /app/uploads
+
+
+jwt:
+  secret: ${JWT_SECRET}
+
+
+logging:
+  level:
+    root: info
+    org:
+      springframework:
+        web: DEBUG
+  file:
+    name: /home/week8/spring.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"

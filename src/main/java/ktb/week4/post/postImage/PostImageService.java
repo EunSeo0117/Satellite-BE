@@ -5,6 +5,8 @@ import ktb.week4.image.ImageService;
 import ktb.week4.post.Post;
 import ktb.week4.post.PostRepository;
 import ktb.week4.post.PostService;
+import ktb.week4.util.exception.CustomException;
+import ktb.week4.util.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,22 +25,27 @@ public class PostImageService {
     @Transactional
     public void createPostImages(Long postId, List<MultipartFile> postImages) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(()-> new IllegalArgumentException("Post not found"));
+                .orElseThrow(()-> new CustomException(ErrorCode.POST_NOT_FOUND));
 
         int idx = 1;
         for (MultipartFile postImage : postImages) {
             Image image = imageService.uploadImage(postImage);
+            createPostImage(post,image,idx);
 
-            PostImage postImagePostImage = PostImage.builder()
-                    .post(post)
-                    .image(image)
-                    .sortOrder(idx)
-                    .build();
-            postImageRepository.save(postImagePostImage);
             idx++;
         }
     }
 
+    private void createPostImage(Post post, Image image, int sortOrder) {
+        PostImage postImage = PostImage.builder()
+                .post(post)
+                .image(image)
+                .sortOrder(sortOrder)
+                .build();
+        postImageRepository.save(postImage);
+    }
+
+    @Transactional
     public void updatePostImages(Long postId, List<MultipartFile> postImages) {
         List<PostImage> existImages = getPostImagesByPostId(postId);
         deletePostImages(existImages);
@@ -46,7 +53,7 @@ public class PostImageService {
         createPostImages(postId, postImages);
     }
 
-    public void deletePostImages(List<PostImage> existImages) {
+    private void deletePostImages(List<PostImage> existImages) {
         for (PostImage postImage : existImages) {
             Image image = postImage.getImage();
             imageService.updateIsDeleted(image);

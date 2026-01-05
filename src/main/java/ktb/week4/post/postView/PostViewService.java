@@ -2,6 +2,8 @@ package ktb.week4.post.postView;
 
 import ktb.week4.post.Post;
 import ktb.week4.post.PostRepository;
+import ktb.week4.util.exception.CustomException;
+import ktb.week4.util.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +16,7 @@ public class PostViewService {
 
     public PostView getPostViewById(Long postId) {
         return postViewRepository.findById(postId)
-                .orElseThrow(()-> new IllegalArgumentException("Post view not found"));
+                .orElseThrow(()-> new CustomException(ErrorCode.POST_VIEW_NOT_FOUND));
     }
 
     @Transactional

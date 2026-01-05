@@ -1,4 +1,4 @@
-package ktb.week4.Login;
+package ktb.week4.Login.CustomUserDetails;
 
 import ktb.week4.user.User;
 import ktb.week4.user.UserRepository;
